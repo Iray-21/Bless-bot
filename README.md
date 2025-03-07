@@ -26,7 +26,7 @@ This script automates network or node operations for Blockless Bless Network Bot
    ```
 2. Navigate to the project directory:
 	```bash
-	cd bless-bot
+	cd Bless-bot
 	```
 3. Install the necessary dependencies:
 	```bash
