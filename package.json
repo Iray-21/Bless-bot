@@ -1,0 +1,31 @@
+{
+  "type": "module",
+  "name": "blockless-bot",
+  "version": "1.0.1",
+  "description": "This script automates network or node operations for Blockless Bless Network Bot.",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "cloudscraper": "^4.6.0",
+    "https-proxy-agent": "^7.0.6",
+    "node-fetch": "^3.3.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Iray-21/bless-Bot.git"
+  },
+  "keywords": [
+    "Bless-Network",
+    "bless-bot",
+    "Bless-bot"
+  ],
+  "author": "@Iray-21",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Iray-21/Bless-bot/issues"
+  },
+  "homepage": "https://github.com/Iray-21/Bless-bot#readme"
+}
