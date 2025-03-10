@@ -1,7 +1,10 @@
-const crypto = require('crypto');
-const fs = require('fs');
-const readline = require('readline');
-//
+import crypto from 'crypto';
+import fs from 'fs';
+import readline from 'readline';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const chalk = await import('chalk').then(mod => mod.default);
+
 function getRandomHardwareIdentifier() {
     const randomCpuArchitecture = Math.random() > 0.5 ? 'x64' : 'x86';
     const randomCpuModel = `Fake CPU Model ${Math.floor(Math.random() * 1000)}`;
@@ -32,8 +35,6 @@ const rl = readline.createInterface({
 });
 
 async function main() {
-    const chalk = (await import('chalk')).default;
-
     console.log(chalk.red.bold('This is only for testing purposes, I do not recommend using it'));
 
     rl.question(chalk.cyan('How many identifiers do you want to generate? '), async (answer) => {
