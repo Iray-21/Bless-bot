@@ -9,7 +9,6 @@ const API_BASE_URL = "https://gateway-run.bls.dev/api/v1";
 const IP_SERVICE_URL = "https://ipinfo.io/json";
 let useProxy;
 
-// Variabel untuk menyimpan jumlah node yang diproses hari ini
 let nodesProcessedToday = 0;
 
 // Helper function to get a random element from an array
@@ -45,7 +44,7 @@ function generateRandomHardwareInfo() {
         cpuFeatures: [...new Set(randomCpuFeatures)],
         numOfProcessors: getRandomElement(numProcessors),
         totalMemory: getRandomElement(memorySizes),
-        extensionVersions: "0.1.7"
+        extensionVersions: "0.1.8"
     };
 }
 
@@ -80,7 +79,7 @@ async function promptUseProxy() {
     });
 
     return new Promise(resolve => {
-        rl.question(chalk.yellow('Do you want to use a proxy? (y/n): '), answer => {
+        rl.question(chalk.white.bold('⚙️ Do you want to use a proxy? (y/n): '), answer => {
             rl.close();
             resolve(answer.toLowerCase() === 'y');
         });
@@ -100,7 +99,7 @@ async function fetchIpAddress(proxy) {
     try {
         const response = await cloudscraper.get(IP_SERVICE_URL, options);
         const data = JSON.parse(response);
-        console.log(chalk.blue(`IP fetch response: ${data?.ip}`));
+
         return data?.ip || '0.0.0.0';
     } catch (error) {
         console.error(chalk.red(`Error fetching IP address: ${error.message}`));
@@ -116,17 +115,23 @@ async function registerNode(nodeId, hardwareId, ipAddress, proxy) {
         Authorization: `Bearer ${authToken}`,
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
         "origin": "chrome-extension://pljbjcehnhcnofmkdbjolghdcjnmekia",
-        "x-extension-version": "0.1.7"
+        "x-extension-version": "0.1.8"
     };
 
     const registerUrl = `${API_BASE_URL}/nodes/${nodeId}`;
-    console.log(chalk.cyan(`Registering node with IP: ${ipAddress}, Hardware ID: ${hardwareId}`));
+    console.log(
+    chalk.green('\nRegistering Node ID : ') + 
+    chalk.yellow(`${chalk.bold(nodeId)}`)
+    );
+
+{chalk.bold(nodeId)}
+
 
     const payload = {
         ipAddress,
         hardwareId,
         hardwareInfo: generateRandomHardwareInfo(),
-        extensionVersion: "0.1.7"
+        extensionVersion: "0.1.8"
     };
 
     const options = {
@@ -137,15 +142,13 @@ async function registerNode(nodeId, hardwareId, ipAddress, proxy) {
 
     try {
         const response = await cloudscraper.post(registerUrl, options);
-        console.log(chalk.green(`Registration response: ${JSON.stringify(response)}`));
-
-        // Tambahkan ke jumlah node yang diproses hari ini
-        nodesProcessedToday++;
-        console.log(chalk.magenta(`Total nodes processed today: ${nodesProcessedToday}`));
-
+        console.log(
+        chalk.white.bold("Regist response     :\n") + 
+        chalk.blueBright(JSON.stringify(response))
+        );
         return response;
     } catch (error) {
-        console.error(chalk.red(`Error registering node: ${error.message}`));
+        console.error(chalk.red(`Error Registering node : ${error.message}`));
         throw error;
     }
 }
@@ -158,11 +161,11 @@ async function startSession(nodeId, proxy) {
         Authorization: `Bearer ${authToken}`,
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
         "origin": "chrome-extension://pljbjcehnhcnofmkdbjolghdcjnmekia",
-        "x-extension-version": "0.1.7"
+        "x-extension-version": "0.1.8"
     };
 
     const startSessionUrl = `${API_BASE_URL}/nodes/${nodeId}/start-session`;
-    console.log(chalk.cyan(`Starting session for node ${nodeId}, it might take a while...`));
+    console.log(chalk.white.bold.italic(`\nStarting session. Please wait a moments...`));
 
     const options = {
         headers,
@@ -171,10 +174,9 @@ async function startSession(nodeId, proxy) {
 
     try {
         const response = await cloudscraper.post(startSessionUrl, options);
-        console.log(chalk.green(`Start session response: ${JSON.stringify(response)}`));
         return response;
     } catch (error) {
-        console.error(chalk.red(`Error starting session: ${error.message}`));
+        console.error(chalk.red(`Error Starting Session : ${error.message}`));
         throw error;
     }
 }
@@ -187,11 +189,10 @@ async function pingNode(nodeId, proxy, ipAddress, isB7SConnected) {
         Authorization: `Bearer ${authToken}`,
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
         "origin": "chrome-extension://pljbjcehnhcnofmkdbjolghdcjnmekia",
-        "x-extension-version": "0.1.7"
+        "x-extension-version": "0.1.8"
     };
 
     const pingUrl = `${API_BASE_URL}/nodes/${nodeId}/ping`;
-    console.log(chalk.cyan(`Pinging node ${nodeId} using proxy ${proxy}`));
 
     const payload = { isB7SConnected };
     const options = {
@@ -202,18 +203,18 @@ async function pingNode(nodeId, proxy, ipAddress, isB7SConnected) {
 
     try {
         const response = await cloudscraper.post(pingUrl, options);
-        console.log(chalk.green(`Ping response, NodeID: ${chalk.bold(nodeId)}, Status: ${chalk.bold(response.status)}, Proxy: ${chalk.bold(proxy)}, IP: ${chalk.bold(ipAddress)}`));
-
-        // Ambil informasi reward dari respons
-        if (response.rewards) {
-            const totalReward = response.rewards.totalReward || 0;
-            const todayReward = response.rewards.todayReward || 0;
-            console.log(chalk.yellow(`Rewards - Total: ${chalk.bold(totalReward)}, Today: ${chalk.bold(todayReward)}`));
-        }
+        console.log(
+          chalk.greenBright.bold('Ping Node ID : ') +
+          chalk.white(`${chalk.bold(nodeId)}`) +
+          chalk.greenBright.bold('\nUsing Proxy  : ') +
+          chalk.white(`${chalk.bold(proxy)} | IP: ${chalk.bold(ipAddress)}`) +
+          chalk.greenBright.bold('\nStatus       : ') +
+          chalk.white(`${chalk.bold(response.status)}`)
+        );
 
         return response;
     } catch (error) {
-        console.error(chalk.red(`Error pinging node: ${error.message}`));
+        console.error(chalk.red(`Error Pinging Node: ${error.message}`));
         throw error;
     }
 }
@@ -226,12 +227,10 @@ async function checkNode(nodeId, proxy) {
         Authorization: `Bearer ${authToken}`,
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
         "origin": "chrome-extension://pljbjcehnhcnofmkdbjolghdcjnmekia",
-        "x-extension-version": "0.1.7"
+        "x-extension-version": "0.1.8"
     };
 
     const checkUrl = `${API_BASE_URL}/nodes/${nodeId}`;
-    console.log(chalk.cyan(`Checking node ${nodeId} using proxy ${proxy}`));
-
     const options = {
         headers,
         proxy: proxy || null
@@ -239,7 +238,10 @@ async function checkNode(nodeId, proxy) {
 
     try {
         const response = await cloudscraper.get(checkUrl, options);
-        console.log(chalk.green(`Check node response: ${JSON.stringify(response)}`));
+        console.log(
+          chalk.blueBright.bold('\nCheck Node response :') + 
+          chalk.white(`\n${JSON.stringify(response)}\n`)
+        );
 
         // Ambil informasi reward dari respons
         if (response.rewards) {
@@ -250,54 +252,124 @@ async function checkNode(nodeId, proxy) {
 
         return response;
     } catch (error) {
-        console.error(chalk.red(`Error checking node: ${error.message}`));
+        console.error(chalk.red(`Error Checking Node: ${error.message}`));
         throw error;
     }
+}
+
+// Function to check internet connection
+async function checkInternetConnection() {
+    try {
+        await cloudscraper.get('https://www.google.com');
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+// Function to try reconnecting to the internet
+async function tryReconnectInternet() {
+    let attempts = 0;
+    const maxAttempts = 10;
+    const delay = 60000; // 1 minute
+
+    while (attempts < maxAttempts) {
+        console.log(chalk.yellow(`Attempting to reconnect to the internet (Attempt ${attempts + 1}/${maxAttempts})...`));
+        const isConnected = await checkInternetConnection();
+        if (isConnected) {
+            console.log(chalk.green('Internet connection restored!'));
+            return true;
+        }
+        await new Promise(resolve => setTimeout(resolve, delay));
+        attempts++;
+    }
+
+    console.log(chalk.red('Failed to reconnect to the internet after multiple attempts.'));
+    return false;
+}
+
+// Function to try another proxy
+async function tryAnotherProxy(proxies, currentProxyIndex) {
+    const nextProxyIndex = (currentProxyIndex + 1) % proxies.length;
+    return proxies[nextProxyIndex];
 }
 
 // Main function to run all tasks
 async function runAll() {
     try {
-        console.log(chalk.blue.bold(`Starting script...`));
+        console.log("");
+        console.log(chalk.white('        ██╗██████╗  █████╗██╗   ██╗  █████╗███╗'));
+        console.log(chalk.white('        ██║██╔══██╗██╔══██╗██╗ ██╔╝     ██╝ ██║'));
+        console.log(chalk.white('        █���║██████╔╝███████║  ██╔╝     ██║   ██║'));
+        console.log(chalk.white('        ██║██║  ██╗██╔══██║  ██║     █████║ ██║'));
+        console.log(chalk.white('        ██║██║  ██║██║  ██║  ██║     ╚════╝ ╚═╝'));
+        console.log(chalk.white('        ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝  ╚═╝  El-Psy-Kongroo'));
+        console.log(chalk.greenBright('       < <  エ ル ・ プ サ イ ・ コングルゥ  > >'));
+        console.log("");
+        console.log(chalk.cyan('                  • BlessNetwork BOT •'));
+        console.log(chalk.yellowBright('                •• github.com/Iray-21 ••'));
+        console.log("");
+        console.log("");
         useProxy = await promptUseProxy();
-        console.log(chalk.blue(`useProxy: ${useProxy}`));
+        console.log(chalk.white(`useProxy: ${useProxy}`));
 
         const ids = await readNodeAndHardwareIds();
-        console.log(chalk.blue(`Loaded ${ids.length} node IDs`));
+        console.log(chalk.white(`Loaded ${ids.length} node IDs`));
 
         const proxies = await readProxies();
-        console.log(chalk.blue(`Loaded ${proxies.length} proxies`));
+        console.log(chalk.white(`Loaded ${proxies.length} proxies`));
 
         if (useProxy && proxies.length < ids.length) {
             throw new Error(`Number of proxies (${proxies.length}) does not match number of nodeId:hardwareId pairs (${ids.length})`);
         }
 
-        // Loop untuk menjalankan tugas secara berkala
         while (true) {
             for (let i = 0; i < ids.length; i++) {
                 const { nodeId, hardwareId } = ids[i];
-                const proxy = useProxy ? proxies[i] : null;
-                const ipAddress = useProxy ? await fetchIpAddress(proxy) : null;
+                let proxy = useProxy ? proxies[i] : null;
+                let ipAddress = useProxy ? await fetchIpAddress(proxy) : null;
 
-                console.log(chalk.cyan.bold(`Processing node ${nodeId} with proxy ${proxy}`));
-                await registerNode(nodeId, hardwareId, ipAddress, proxy);
-                await startSession(nodeId, proxy);
-                await pingNode(nodeId, proxy, ipAddress, true);
-                await checkNode(nodeId, proxy);
+                console.log(chalk.black.bold.bgWhite(`\n Processing Node, it might take a while...  `));
+
+                try {
+                    await registerNode(nodeId, hardwareId, ipAddress, proxy);
+                    await startSession(nodeId, proxy);
+                    await pingNode(nodeId, proxy, ipAddress, true);
+                    await checkNode(nodeId, proxy);
+                } catch (error) {
+                    console.error(chalk.red.bold(`An error occurred: ${error.message}`));
+
+                    // Check if the error is due to internet connection
+                    if (error.message.includes('ENOTFOUND') || error.message.includes('socket hang up')) {
+                        const isInternetRestored = await tryReconnectInternet();
+                        if (!isInternetRestored) {
+                            console.log(chalk.red.bold('Internet connection could not be restored. Stopping script...'));
+                            process.exit(1);
+                        }
+                    }
+
+                    // If using proxy, try another proxy
+                    if (useProxy) {
+                        proxy = await tryAnotherProxy(proxies, i);
+                        console.log(chalk.yellow(`Trying another proxy: ${proxy}`));
+                        ipAddress = await fetchIpAddress(proxy);
+                    }
+
+                    // Wait for 10 minutes before retrying
+                    console.log(chalk.white.bold(`\nWaiting for 10 minutes before retrying...\n`));
+                    await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
+                }
             }
 
-            // Tampilkan jumlah node yang diproses hari ini
-            console.log(chalk.magenta.bold(`Total nodes processed today: ${nodesProcessedToday}`));
-
-            // Tunggu 10 menit sebelum menjalankan lagi
-            console.log(chalk.blue.bold(`Waiting for 10 minutes before next run...`));
+            console.log(chalk.white.bold(`\nWaiting for 10 minutes before next ping...\n`));
             await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
         }
     } catch (error) {
         console.error(chalk.red.bold(`An error occurred: ${error.message}`));
+        process.exit(1);
     }
 }
 
 // Run the script
 runAll();
-
+            
