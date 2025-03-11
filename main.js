@@ -96,15 +96,10 @@ async function fetchIpAddress(proxy) {
         },
     };
 
-    try {
-        const response = await cloudscraper.get(IP_SERVICE_URL, options);
-        const data = JSON.parse(response);
+    const response = await cloudscraper.get(IP_SERVICE_URL, options);
+    const data = JSON.parse(response);
 
-        return data?.ip || '0.0.0.0';
-    } catch (error) {
-        console.error(chalk.red(`Error fetching IP address: ${error.message}`));
-        return '0.0.0.0';
-    }
+    return data?.ip || '0.0.0.0';
 }
 
 // Register node
@@ -120,12 +115,9 @@ async function registerNode(nodeId, hardwareId, ipAddress, proxy) {
 
     const registerUrl = `${API_BASE_URL}/nodes/${nodeId}`;
     console.log(
-    chalk.green('\nRegistering Node ID : ') + 
-    chalk.yellow(`${chalk.bold(nodeId)}`)
+        chalk.green('\nRegistering Node ID : ') +
+        chalk.yellow(`${chalk.bold(nodeId)}`)
     );
-
-{chalk.bold(nodeId)}
-
 
     const payload = {
         ipAddress,
@@ -140,17 +132,12 @@ async function registerNode(nodeId, hardwareId, ipAddress, proxy) {
         proxy: proxy || null
     };
 
-    try {
-        const response = await cloudscraper.post(registerUrl, options);
-        console.log(
-        chalk.white.bold("Regist response     :\n") + 
+    const response = await cloudscraper.post(registerUrl, options);
+    console.log(
+        chalk.white.bold("Regist response     :\n") +
         chalk.blueBright(JSON.stringify(response))
-        );
-        return response;
-    } catch (error) {
-        console.error(chalk.red(`Error Registering node : ${error.message}`));
-        throw error;
-    }
+    );
+    return response;
 }
 
 // Start session
@@ -201,22 +188,17 @@ async function pingNode(nodeId, proxy, ipAddress, isB7SConnected) {
         proxy: proxy || null
     };
 
-    try {
-        const response = await cloudscraper.post(pingUrl, options);
-        console.log(
-          chalk.greenBright.bold('Ping Node ID : ') +
-          chalk.white(`${chalk.bold(nodeId)}`) +
-          chalk.greenBright.bold('\nUsing Proxy  : ') +
-          chalk.white(`${chalk.bold(proxy)} | IP: ${chalk.bold(ipAddress)}`) +
-          chalk.greenBright.bold('\nStatus       : ') +
-          chalk.white(`${chalk.bold(response.status)}`)
-        );
+    const response = await cloudscraper.post(pingUrl, options);
+    console.log(
+        chalk.greenBright.bold('Ping Node ID : ') +
+        chalk.white(`${chalk.bold(nodeId)}`) +
+        chalk.greenBright.bold('\nUsing Proxy  : ') +
+        chalk.white(`${chalk.bold(proxy)} | IP: ${chalk.bold(ipAddress)}`) +
+        chalk.greenBright.bold('\nStatus       : ') +
+        chalk.white(`${chalk.bold(response.status)}`)
+    );
 
-        return response;
-    } catch (error) {
-        console.error(chalk.red(`Error Pinging Node: ${error.message}`));
-        throw error;
-    }
+    return response;
 }
 
 // Check node status and rewards
@@ -236,25 +218,20 @@ async function checkNode(nodeId, proxy) {
         proxy: proxy || null
     };
 
-    try {
-        const response = await cloudscraper.get(checkUrl, options);
-        console.log(
-          chalk.blueBright.bold('\nCheck Node response :') + 
-          chalk.white(`\n${JSON.stringify(response)}\n`)
-        );
+    const response = await cloudscraper.get(checkUrl, options);
+    console.log(
+        chalk.blueBright.bold('\nCheck Node response :') +
+        chalk.white(`\n${JSON.stringify(response)}\n`)
+    );
 
-        // Ambil informasi reward dari respons
-        if (response.rewards) {
-            const totalReward = response.rewards.totalReward || 0;
-            const todayReward = response.rewards.todayReward || 0;
-            console.log(chalk.yellow(`Rewards - Total: ${chalk.bold(totalReward)}, Today: ${chalk.bold(todayReward)}`));
-        }
-
-        return response;
-    } catch (error) {
-        console.error(chalk.red(`Error Checking Node: ${error.message}`));
-        throw error;
+    // Ambil informasi reward dari respons
+    if (response.rewards) {
+        const totalReward = response.rewards.totalReward || 0;
+        const todayReward = response.rewards.todayReward || 0;
+        console.log(chalk.yellow(`Rewards - Total: ${chalk.bold(totalReward)}, Today: ${chalk.bold(todayReward)}`));
     }
+
+    return response;
 }
 
 // Function to check internet connection
@@ -288,19 +265,13 @@ async function tryReconnectInternet() {
     return false;
 }
 
-// Function to try another proxy
-async function tryAnotherProxy(proxies, currentProxyIndex) {
-    const nextProxyIndex = (currentProxyIndex + 1) % proxies.length;
-    return proxies[nextProxyIndex];
-}
-
 // Main function to run all tasks
 async function runAll() {
     try {
         console.log("");
         console.log(chalk.white('        ██╗██████╗  █████╗██╗   ██╗  █████╗███╗'));
         console.log(chalk.white('        ██║██╔══██╗██╔══██╗██╗ ██╔╝     ██╝ ██║'));
-        console.log(chalk.white('        █���║██████╔╝███████║  ██╔╝     ██║   ██║'));
+        console.log(chalk.white('        ██║██████╔╝███████║  ██╔╝     ██║   ██║'));
         console.log(chalk.white('        ██║██║  ██╗██╔══██║  ██║     █████║ ██║'));
         console.log(chalk.white('        ██║██║  ██║██║  ██║  ██║     ╚════╝ ╚═╝'));
         console.log(chalk.white('        ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝  ╚═╝  El-Psy-Kongroo'));
@@ -339,7 +310,7 @@ async function runAll() {
                 } catch (error) {
                     console.error(chalk.red.bold(`An error occurred: ${error.message}`));
 
-                    // Check if the error is due to internet connection
+                    // Penanganan error koneksi internet (nomor 9)
                     if (error.message.includes('ENOTFOUND') || error.message.includes('socket hang up')) {
                         const isInternetRestored = await tryReconnectInternet();
                         if (!isInternetRestored) {
@@ -347,17 +318,6 @@ async function runAll() {
                             process.exit(1);
                         }
                     }
-
-                    // If using proxy, try another proxy
-                    if (useProxy) {
-                        proxy = await tryAnotherProxy(proxies, i);
-                        console.log(chalk.yellow(`Trying another proxy: ${proxy}`));
-                        ipAddress = await fetchIpAddress(proxy);
-                    }
-
-                    // Wait for 10 minutes before retrying
-                    console.log(chalk.white.bold(`\nWaiting for 10 minutes before retrying...\n`));
-                    await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
                 }
             }
 
@@ -372,4 +332,3 @@ async function runAll() {
 
 // Run the script
 runAll();
-            
