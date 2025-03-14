@@ -91,6 +91,10 @@ Here, I’m using Kiwi Browser:
 
 6. Then, copy the required information.
 
+**How to get 5 nodes/pubkey for one accounts?**
+Just logout and delete extension then install extension again and login again.
+do this until you have 5 pubkeys for one account
+
 # Example
 i'm running 6 accounts
 ![Screenshot user Bless Bot](https://github.com/Iray-21/Bless-bot/blob/main/user.jpg?raw=true)
@@ -98,9 +102,6 @@ i'm running 6 accounts
 then i have to input 30 nodes like this in id.txt
 ![Screenshot id Bless Bot](https://github.com/Iray-21/Bless-bot/blob/main/id.jpg?raw=true)
 
-**How to get 5 nodes/pubkey for one accounts?**
-Just logout and delete extension then install extension again and login again.
-do this until you have 5 pubkeys for one account
 
 # Id
 # Blockless Bless Network Bot
@@ -196,6 +197,9 @@ Di sini saya menggunakan Kiwi Browser:
 
 6. Lalu, salin (copy).
 
+**Bagaimana Cara Mendapatkan 5 node/pubkey untuk satu akun?**
+Cukup logout dan hapus ekstensi lalu instal ekstensi lagi lalu login lagi.
+Lakukan ini sampai Anda memiliki 5 pubkey untuk satu akun.
 
 # Contoh
 Saya menjalankan 6 akun
@@ -204,6 +208,3 @@ Saya menjalankan 6 akun
 maka saya harus memasukkan 30 node seperti ini di `id.txt`
 ![Screenshot id Bless Bot](https://github.com/Iray-21/Bless-bot/blob/main/id.jpg?raw=true)
 
-**Bagaimana Cara Mendapatkan 5 node/pubkey untuk satu akun?**
-Cukup logout dan hapus ekstensi lalu instal ekstensi lagi lalu login lagi.
-Lakukan ini sampai Anda memiliki 5 pubkey untuk satu akun.
