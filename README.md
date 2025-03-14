@@ -87,9 +87,9 @@ Here, I’m using Kiwi Browser:
 4. Go back to the developer tools, select the **NETWORK** option.  
 5. Look for something like this:  
 
-   ![Example Network Request](https://via.placeholder.com/600x400?text=Look+for+Pubkey+Request)  
+![Screenshot Bless Bot](https://github.com/Iray-21/Bless-bot/blob/main/Screenshot2.jpg?raw=true)
 
-6. Then, copy the required information.  
+6. Then, copy the required information.
 
 # Example
 i'm running 6 accounts
@@ -192,7 +192,7 @@ Di sini saya menggunakan Kiwi Browser:
 4. Kembali ke developer tools, pilih opsi **NETWORK**.
 5. Cari yang seperti ini:
 
-   ![Contoh Network Request](https://via.placeholder.com/600x400?text=Cari+Request+Pubkey)
+![Screenshot Bless Bot](https://github.com/Iray-21/Bless-bot/blob/main/Screenshot2.jpg?raw=true)
 
 6. Lalu, salin (copy).
 
