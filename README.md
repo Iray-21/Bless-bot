@@ -3,6 +3,8 @@
 ## Description
 This script automates network or node operations for Blockless Bless Network Bot.
 
+![Screenshot Bless Bot](https://github.com/Iray-21/Bless-bot/blob/main/Screenshot.jpg?raw=true)
+
 ## Update
 
 - if you already generated pubkey using sc before just retire it
