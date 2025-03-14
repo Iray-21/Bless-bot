@@ -12,6 +12,7 @@ This script automates network or node operations for Blockless Bless Network Bot
 
 ## Features
 - **Automated node interaction**
+- **Multiple Accounts**
 - **Multi NodeID**
 - **Proxy support**
 
@@ -67,4 +68,11 @@ This script automates network or node operations for Blockless Bless Network Bot
 	```bash
 	node main.js
 	```
-**NOTE: The total time is refreshed every 10minute connection, One account only can have 5 nodeid max and can't be deleted, I recomended to save your Nodeid(pubkey) and hardwareid of your account**
+**NOTE:
+The total time is refreshed every 10 minutes connection, One account only can have 5 nodeid max/account and can't be deleted, I recomended to save your Nodeid(pubkey) and hardwareid of your account**
+
+**How to Access Multiple Accounts?**
+- Mandatory 1 user must have 5 nodes/pubkeys.
+- just add tokens for other account in user.txt
+and add 5 pubkeys other account in id.txt again.
+
