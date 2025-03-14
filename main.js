@@ -7,9 +7,11 @@ import readline from 'readline';
 // Constants
 const API_BASE_URL = "https://gateway-run.bls.dev/api/v1";
 const IP_SERVICE_URL = "https://ipinfo.io/json";
+const IDS_PER_USER = 5; // Setiap user menjalankan 5 ID
+const RETRY_ATTEMPTS = 3; // Jumlah percobaan ulang
+const RETRY_DELAY = 60000; // Interval percobaan ulang (60 detik)
+const WAIT_AFTER_FAILURE = 10 * 60 * 1000; // Tunggu 10 menit setelah semua percobaan gagal
 let useProxy;
-
-let nodesProcessedToday = 0;
 
 // Helper function to get a random element from an array
 function getRandomElement(arr) {
@@ -65,10 +67,11 @@ async function readNodeAndHardwareIds() {
     return ids;
 }
 
-// Read auth token from file
-async function readAuthToken() {
+// Read users from file
+async function readUsers() {
     const data = await fs.readFile('user.txt', 'utf-8');
-    return data.trim();
+    const users = data.trim().split('\n').filter(user => user && !user.startsWith('#'));
+    return users;
 }
 
 // Prompt user to use proxy
@@ -96,15 +99,19 @@ async function fetchIpAddress(proxy) {
         },
     };
 
-    const response = await cloudscraper.get(IP_SERVICE_URL, options);
-    const data = JSON.parse(response);
+    try {
+        const response = await cloudscraper.get(IP_SERVICE_URL, options);
+        const data = JSON.parse(response);
 
-    return data?.ip || '0.0.0.0';
+        return data?.ip || '0.0.0.0';
+    } catch (error) {
+        console.error(chalk.red(`Error fetching IP address: ${error.message}`));
+        return '0.0.0.0';
+    }
 }
 
 // Register node
-async function registerNode(nodeId, hardwareId, ipAddress, proxy) {
-    const authToken = await readAuthToken();
+async function registerNode(nodeId, hardwareId, ipAddress, proxy, authToken) {
     const headers = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${authToken}`,
@@ -114,10 +121,7 @@ async function registerNode(nodeId, hardwareId, ipAddress, proxy) {
     };
 
     const registerUrl = `${API_BASE_URL}/nodes/${nodeId}`;
-    console.log(
-        chalk.green('\nRegistering Node ID : ') +
-        chalk.yellow(`${chalk.bold(nodeId)}`)
-    );
+    console.log(chalk.green('\nRegistering Node ID : ') + chalk.yellow(`${chalk.bold(nodeId)}`));
 
     const payload = {
         ipAddress,
@@ -132,17 +136,23 @@ async function registerNode(nodeId, hardwareId, ipAddress, proxy) {
         proxy: proxy || null
     };
 
-    const response = await cloudscraper.post(registerUrl, options);
-    console.log(
-        chalk.white.bold("Regist response     :\n") +
-        chalk.blueBright(JSON.stringify(response))
-    );
-    return response;
+    try {
+        const response = await cloudscraper.post(registerUrl, options);
+        console.log(chalk.white.bold("Regist response     :\n") + chalk.blueBright(JSON.stringify(response)));
+        return { success: true, response };
+    } catch (error) {
+        console.error(chalk.red(`Error Registering node : ${error.message}`));
+        return {
+            success: false,
+            error: error.message,
+            statusCode: error.statusCode || 500,
+            isProxyError: proxy !== null // Menandai apakah kesalahan disebabkan oleh proxy
+        };
+    }
 }
 
 // Start session
-async function startSession(nodeId, proxy) {
-    const authToken = await readAuthToken();
+async function startSession(nodeId, proxy, authToken) {
     const headers = {
         Accept: "*/*",
         Authorization: `Bearer ${authToken}`,
@@ -169,8 +179,7 @@ async function startSession(nodeId, proxy) {
 }
 
 // Ping node
-async function pingNode(nodeId, proxy, ipAddress, isB7SConnected) {
-    const authToken = await readAuthToken();
+async function pingNode(nodeId, proxy, ipAddress, isB7SConnected, authToken) {
     const headers = {
         Accept: "*/*",
         Authorization: `Bearer ${authToken}`,
@@ -188,22 +197,26 @@ async function pingNode(nodeId, proxy, ipAddress, isB7SConnected) {
         proxy: proxy || null
     };
 
-    const response = await cloudscraper.post(pingUrl, options);
-    console.log(
-        chalk.greenBright.bold('Ping Node ID : ') +
-        chalk.white(`${chalk.bold(nodeId)}`) +
-        chalk.greenBright.bold('\nUsing Proxy  : ') +
-        chalk.white(`${chalk.bold(proxy)} | IP: ${chalk.bold(ipAddress)}`) +
-        chalk.greenBright.bold('\nStatus       : ') +
-        chalk.white(`${chalk.bold(response.status)}`)
-    );
+    try {
+        const response = await cloudscraper.post(pingUrl, options);
+        console.log(
+          chalk.greenBright.bold('Ping Node ID : ') +
+          chalk.white(`${chalk.bold(nodeId)}`) +
+          chalk.greenBright.bold('\nUsing Proxy  : ') +
+          chalk.white(`${chalk.bold(proxy)} | IP: ${chalk.bold(ipAddress)}`) +
+          chalk.greenBright.bold('\nStatus       : ') +
+          chalk.white(`${chalk.bold(response.status)}`)
+        );
 
-    return response;
+        return response;
+    } catch (error) {
+        console.error(chalk.red(`Error Pinging Node: ${error.message}`));
+        throw error;
+    }
 }
 
 // Check node status and rewards
-async function checkNode(nodeId, proxy) {
-    const authToken = await readAuthToken();
+async function checkNode(nodeId, proxy, authToken) {
     const headers = {
         Accept: "*/*",
         Authorization: `Bearer ${authToken}`,
@@ -218,20 +231,25 @@ async function checkNode(nodeId, proxy) {
         proxy: proxy || null
     };
 
-    const response = await cloudscraper.get(checkUrl, options);
-    console.log(
-        chalk.blueBright.bold('\nCheck Node response :') +
-        chalk.white(`\n${JSON.stringify(response)}\n`)
-    );
+    try {
+        const response = await cloudscraper.get(checkUrl, options);
+        console.log(
+          chalk.blueBright.bold('\nCheck Node response :') + 
+          chalk.white(`\n${JSON.stringify(response)}\n`)
+        );
 
-    // Ambil informasi reward dari respons
-    if (response.rewards) {
-        const totalReward = response.rewards.totalReward || 0;
-        const todayReward = response.rewards.todayReward || 0;
-        console.log(chalk.yellow(`Rewards - Total: ${chalk.bold(totalReward)}, Today: ${chalk.bold(todayReward)}`));
+        // Ambil informasi reward dari respons
+        if (response.rewards) {
+            const totalReward = response.rewards.totalReward || 0;
+            const todayReward = response.rewards.todayReward || 0;
+            console.log(chalk.yellow(`Rewards - Total: ${chalk.bold(totalReward)}, Today: ${chalk.bold(todayReward)}`));
+        }
+
+        return response;
+    } catch (error) {
+        console.error(chalk.red(`Error Checking Node: ${error.message}`));
+        throw error;
     }
-
-    return response;
 }
 
 // Function to check internet connection
@@ -265,6 +283,93 @@ async function tryReconnectInternet() {
     return false;
 }
 
+// Function to retry a function with a delay
+async function retryWithDelay(fn, maxRetries = RETRY_ATTEMPTS, retryDelay = RETRY_DELAY) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const result = await fn();
+            return result; // Jika berhasil, kembalikan hasilnya
+        } catch (error) {
+            console.error(chalk.red(`Attempt ${attempt} failed: ${error.message}`));
+            if (attempt < maxRetries) {
+                console.log(chalk.yellow(`Retrying in ${retryDelay / 1000} seconds...`));
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            } else {
+                throw error; // Jika semua percobaan gagal, lempar error
+            }
+        }
+    }
+}
+
+// Function to process a single node
+async function processNode(nodeId, hardwareId, proxy, useProxy, authToken, proxies) {
+    let ipAddress = useProxy ? await fetchIpAddress(proxy) : null;
+
+    try {
+        // Coba daftar node dengan retry logic
+        let registrationResult = await retryWithDelay(async () => {
+            return await registerNode(nodeId, hardwareId, ipAddress, proxy, authToken);
+        });
+
+        // Jika pendaftaran gagal karena proxy, coba proxy lain atau tanpa proxy
+        if (!registrationResult.success && registrationResult.isProxyError) {
+            console.log(chalk.yellow(`Proxy failed, trying another proxy or without proxy...`));
+            for (let i = 0; i < proxies.length; i++) {
+                proxy = proxies[i];
+                console.log(chalk.yellow(`Trying proxy: ${proxy}`));
+                ipAddress = await fetchIpAddress(proxy);
+                registrationResult = await retryWithDelay(async () => {
+                    return await registerNode(nodeId, hardwareId, ipAddress, proxy, authToken);
+                });
+
+                if (registrationResult.success) break; // Jika berhasil, keluar dari loop
+            }
+
+            // Jika semua proxy gagal, coba tanpa proxy
+            if (!registrationResult.success) {
+                console.log(chalk.yellow(`All proxies failed, trying without proxy...`));
+                proxy = null;
+                ipAddress = await fetchIpAddress(proxy);
+                registrationResult = await retryWithDelay(async () => {
+                    return await registerNode(nodeId, hardwareId, ipAddress, proxy, authToken);
+                });
+            }
+        }
+
+        // Jika pendaftaran masih gagal, lewati node ini
+        if (!registrationResult.success) {
+            console.log(chalk.red(`Failed to register node after all attempts. Skipping node ${nodeId}...`));
+            return;
+        }
+
+        // Lanjutkan ke startSession, pingNode, dan checkNode
+        await retryWithDelay(async () => {
+            return await startSession(nodeId, proxy, authToken);
+        });
+        await retryWithDelay(async () => {
+            return await pingNode(nodeId, proxy, ipAddress, true, authToken);
+        });
+        await retryWithDelay(async () => {
+            return await checkNode(nodeId, proxy, authToken);
+        });
+    } catch (error) {
+        console.error(chalk.red.bold(`An error occurred: ${error.message}`));
+
+        // Jika kesalahan disebabkan oleh koneksi internet, coba sambungkan kembali
+        if (error.message.includes('ENOTFOUND') || error.message.includes('socket hang up')) {
+            const isInternetRestored = await tryReconnectInternet();
+            if (!isInternetRestored) {
+                console.log(chalk.red.bold('Internet connection could not be restored. Stopping script...'));
+                process.exit(1);
+            }
+        }
+
+        // Tunggu 10 menit sebelum mencoba lagi
+        console.log(chalk.white.bold(`\nWaiting for 10 minutes before retrying...\n`));
+        await new Promise(resolve => setTimeout(resolve, WAIT_AFTER_FAILURE));
+    }
+}
+
 // Main function to run all tasks
 async function runAll() {
     try {
@@ -273,7 +378,7 @@ async function runAll() {
         console.log(chalk.white('        ██║██╔══██╗██╔══██╗██╗ ██╔╝     ██╝ ██║'));
         console.log(chalk.white('        ██║██████╔╝███████║  ██╔╝     ██║   ██║'));
         console.log(chalk.white('        ██║██║  ██╗██╔══██║  ██║     █████║ ██║'));
-        console.log(chalk.white('        ██║██║  ██║██║  ██║  ██║     ╚════╝ ╚═╝'));
+        console.log(chalk.white('        ██║██║  ██╗██║  ██║  ██║     ╚════╝ ╚═╝'));
         console.log(chalk.white('        ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝  ╚═╝  El-Psy-Kongroo'));
         console.log(chalk.greenBright('       < <  エ ル ・ プ サ イ ・ コングルゥ  > >'));
         console.log("");
@@ -283,6 +388,9 @@ async function runAll() {
         console.log("");
         useProxy = await promptUseProxy();
         console.log(chalk.white(`useProxy: ${useProxy}`));
+
+        const users = await readUsers();
+        console.log(chalk.white(`Loaded ${users.length} users`));
 
         const ids = await readNodeAndHardwareIds();
         console.log(chalk.white(`Loaded ${ids.length} node IDs`));
@@ -295,34 +403,27 @@ async function runAll() {
         }
 
         while (true) {
-            for (let i = 0; i < ids.length; i++) {
-                const { nodeId, hardwareId } = ids[i];
-                let proxy = useProxy ? proxies[i] : null;
-                let ipAddress = useProxy ? await fetchIpAddress(proxy) : null;
+            for (let userIndex = 0; userIndex < users.length; userIndex++) {
+                const authToken = users[userIndex];
+                const startIdIndex = userIndex * IDS_PER_USER;
+                const endIdIndex = startIdIndex + IDS_PER_USER;
 
-                console.log(chalk.black.bold.bgWhite(`\n Processing Node, it might take a while...  `));
+                // Ambil 5 ID untuk user ini
+                const userIds = ids.slice(startIdIndex, endIdIndex);
 
-                try {
-                    await registerNode(nodeId, hardwareId, ipAddress, proxy);
-                    await startSession(nodeId, proxy);
-                    await pingNode(nodeId, proxy, ipAddress, true);
-                    await checkNode(nodeId, proxy);
-                } catch (error) {
-                    console.error(chalk.red.bold(`An error occurred: ${error.message}`));
+                console.log(chalk.white(`\nProcessing User ${userIndex + 1} with ${userIds.length} nodes...`));
 
-                    // Penanganan error koneksi internet (nomor 9)
-                    if (error.message.includes('ENOTFOUND') || error.message.includes('socket hang up')) {
-                        const isInternetRestored = await tryReconnectInternet();
-                        if (!isInternetRestored) {
-                            console.log(chalk.red.bold('Internet connection could not be restored. Stopping script...'));
-                            process.exit(1);
-                        }
-                    }
+                // Proses setiap node untuk user ini
+                for (let i = 0; i < userIds.length; i++) {
+                    const { nodeId, hardwareId } = userIds[i];
+                    const proxy = useProxy ? proxies[i] : null;
+
+                    await processNode(nodeId, hardwareId, proxy, useProxy, authToken, proxies);
                 }
             }
 
             console.log(chalk.white.bold(`\nWaiting for 10 minutes before next ping...\n`));
-            await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
+            await new Promise(resolve => setTimeout(resolve, WAIT_AFTER_FAILURE));
         }
     } catch (error) {
         console.error(chalk.red.bold(`An error occurred: ${error.message}`));
